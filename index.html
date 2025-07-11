@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BEES Tracker – Bees Edition 🐝</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom Bee Theme -->
+  <style>
+    :root {
+      --bee-yellow: #facc15; /* yellow‑400 */
+      --bee-black: #0f0f0f;
+    }
+
+    /* Honeycomb background pattern */
+    body {
+      /* fallback color */
+      background-color: var(--bee-black);
+      color: #ffffff;
+
+      /* Honeycomb hex pattern using repeating conic gradients */
+      background-image:
+        repeating-conic-gradient(
+          from 60deg,
+          var(--bee-yellow) 0deg 60deg,
+          transparent 60deg 120deg,
+          var(--bee-yellow) 120deg 180deg
+        );
+      background-size: 40px 69.28px; /* width = 2a, height = sqrt(3)a where a ≈ 20 */
+      background-position: 0 0, 20px 34.64px; /* stagger */
+      filter: brightness(0.9);
+    }
+
+    /* Dark overlay so content pops */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Buzz Animation */
+    @keyframes buzz {
+      0% { transform: rotate(0deg); }
+      25% { transform: rotate(1.5deg); }
+      50% { transform: rotate(-1.5deg); }
+      75% { transform: rotate(1.5deg); }
+      100% { transform: rotate(0deg); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Navbar -->
+  <nav class="bg-[color:var(--bee-yellow)] text-[color:var(--bee-black)] shadow-lg">
+    <div class="max-w-4xl mx-auto flex items-center justify-between p-4">
+      <span class="font-bold text-xl">🐝 BEES Tracker</span>
+
+      <!-- Burger button -->
+      <button id="burgerBtn" class="lg:hidden focus:outline-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      <!-- Desktop menu (empty for now) -->
+      <ul class="hidden lg:flex space-x-6 font-medium"></ul>
+    </div>
+
+    <!-- Mobile menu (hidden by default) -->
+    <ul id="mobileMenu" class="lg:hidden hidden flex-col space-y-2 px-6 pb-4 font-medium bg-[color:var(--bee-yellow)]"></ul>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-grow flex flex-col items-center justify-center px-4 text-center">
+    <!-- Search Panel -->
+    <section class="w-full max-w-md space-y-4">
+      <div class="flex bg-[color:var(--bee-black)] border-4 border-[color:var(--bee-yellow)] rounded-lg overflow-hidden shadow-xl">
+        <input id="trackingInput" type="text" placeholder="Enter tracking number" class="flex-grow px-4 py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none" />
+        <button id="searchBtn" class="px-5 py-2 font-bold bg-[color:var(--bee-yellow)] text-[color:var(--bee-black)] hover:bg-yellow-300 transition-colors">Search</button>
+      </div>
+      <p class="text-yellow-300 text-sm">Try: TRK123456, TRK987654, TRK555333</p>
+    </section>
+
+    <!-- Result Section -->
+    <section id="resultSection" class="w-full max-w-lg mt-6"></section>
+  </main>
+
+  <!-- Buzz sound -->
+  <audio id="buzzSound" preload="auto">
+    <source src="https://www.soundjay.com/button/beep-07.wav" type="audio/wav" />
+  </audio>
+
+  <!-- Script -->
+  <script>
+    /* ---------------- Mock data ---------------- */
+    const parcels = [
+      { trackingNumber: "TRK123456", status: "Out for Delivery", lastLocation: "Quezon City Sorting Hub", expectedDelivery: "2025-07-12" },
+      { trackingNumber: "TRK987654", status: "In Transit", lastLocation: "Cebu Distribution Center", expectedDelivery: "2025-07-15" },
+      { trackingNumber: "TRK555333", status: "Delivered", lastLocation: "Makati City", expectedDelivery: "2025-07-09" },
+    ];
+
+    /* ---------------- DOM ---------------- */
+    const burgerBtn = document.getElementById("burgerBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const trackingInput = document.getElementById("trackingInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const resultSection = document.getElementById("resultSection");
+    const buzzSound = document.getElementById("buzzSound");
+
+    burgerBtn.addEventListener("click", () => mobileMenu.classList.toggle("hidden"));
+
+    function renderResult(parcel) {
+      if (!parcel) {
+        resultSection.innerHTML = `<div class="bg-gray-800 border-4 border-[color:var(--bee-yellow)] text-yellow-300 rounded-lg p-4 animate-pulse">❌ Tracking number not found.</div>`;
+        return;
+      }
+      buzzSound.currentTime = 0; buzzSound.play();
+      resultSection.innerHTML = `<div class="bg-gray-900 border-4 border-[color:var(--bee-yellow)] text-white rounded-lg p-6 shadow-lg" style="animation: buzz 0.5s ease-in-out;">
+        <h2 class="text-xl font-bold mb-2">Tracking #: ${parcel.trackingNumber}</h2>
+        <p class="mb-1"><strong>Status:</strong> ${parcel.status}</p>
+        <p class="mb-1"><strong>Last Location:</strong> ${parcel.lastLocation}</p>
+        <p><strong>Expected Delivery:</strong> ${parcel.expectedDelivery}</p>
+      </div>`;
+    }
+
+    const handleSearch = () => {
+      const query = trackingInput.value.trim().toUpperCase();
+      if (!query) return;
+      renderResult(parcels.find(p => p.trackingNumber === query));
+    };
+    searchBtn.addEventListener("click", handleSearch);
+    trackingInput.addEventListener("keypress", e => e.key === "Enter" && handleSearch());
+  </script>
+</body>
+</html>
